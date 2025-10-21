@@ -10,7 +10,7 @@ import { TypeFilterSkeleton } from "@/components/Skeleton/TypeFilterSkeleton";
 import { useToast } from "@/hooks/use-toast";
 import type { Pokemon } from "@/types/pokemon";
 import {
-  getPokemonsPaginated,
+  getPokemons,
   getPokemonsByTypePaginated,
   getPokemonTypeCount,
   getTotalPokemonCount,
@@ -82,7 +82,7 @@ export default function PokemonMain({ initialPokemons }: Props) {
       let newPokemons: Pokemon[] = [];
 
       if (filterType === "All") {
-        newPokemons = await getPokemonsPaginated(POKEMON_LIMIT, offset);
+        newPokemons = await getPokemons(POKEMON_LIMIT, offset);
         const totalCount = await getTotalPokemonCount();
         setHasMore(offset + POKEMON_LIMIT < totalCount);
       } else {
@@ -123,7 +123,7 @@ export default function PokemonMain({ initialPokemons }: Props) {
         let newPokemons: Pokemon[] = [];
 
         if (type === "All") {
-          newPokemons = await getPokemonsPaginated(POKEMON_LIMIT, 0);
+          newPokemons = await getPokemons(POKEMON_LIMIT, 0);
           const totalCount = await getTotalPokemonCount();
           setHasMore(POKEMON_LIMIT < totalCount);
         } else {

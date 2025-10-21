@@ -1,56 +1,27 @@
 import { describe, it, expect } from "vitest";
 import { http, HttpResponse } from "msw";
 import { server } from "../mocks/server";
-import { getPokemons } from "../../actions/pokemons.action";
-
-// Mock data closely resembling the actual API response structure for consistency.
-const mockPokemonList = {
-  results: [{ name: "bulbasaur", url: "https://pokeapi.co/api/v2/pokemon/1/" }],
-};
-
-// Updated mock data with the full 'stat' object to match the actual API response.
-const mockBulbasaurDetails = {
-  sprites: {
-    other: { "official-artwork": { front_default: "bulbasaur.png" } },
-    front_default: "bulbasaur_default.png",
-  },
-  types: [{ type: { name: "grass" } }],
-  stats: [
-    { base_stat: 45, stat: { name: "hp" } },
-    { base_stat: 49, stat: { name: "attack" } },
-    { base_stat: 49, stat: { name: "defense" } },
-    { base_stat: 65, stat: { name: "special-attack" } },
-    { base_stat: 65, stat: { name: "special-defense" } },
-    { base_stat: 45, stat: { name: "speed" } },
-  ],
-};
+import { getPokemons } from "@/actions/pokemons.action";
+import { mockPokemonList, mockBulbasaurDetails } from "../mocks/mock.data";
 
 describe("getPokemons Server Action", () => {
   it("should fetch and correctly transform the pokemon data on success", async () => {
-    // Override the default MSW handlers for this specific test case.
     server.use(
-      http.get("https://pokeapi.co/api/v2/pokemon", ({ request }) => {
-        // Ensure we are only mocking the intended request.
-        const url = new URL(request.url);
-        if (url.searchParams.get("limit") === "150") {
-          return HttpResponse.json(mockPokemonList);
-        }
-      }),
-      http.get("https://pokeapi.co/api/v2/pokemon/1/", () => {
-        return HttpResponse.json(mockBulbasaurDetails);
-      }),
+      http.get("https://pokeapi.co/api/v2/pokemon", () =>
+        HttpResponse.json(mockPokemonList),
+      ),
+      http.get("https://pokeapi.co/api/v2/pokemon/1/", () =>
+        HttpResponse.json(mockBulbasaurDetails),
+      ),
     );
 
     const pokemons = await getPokemons();
-
-    // Assert that the function returns the expected number of Pokémon.
-    expect(pokemons).toHaveLength(1);
-    // Assert that the data is transformed into the correct shape.
+    expect(pokemons).toHaveLength(2);
     expect(pokemons[0]).toEqual({
       id: 1,
       name: "Bulbasaur",
-      image: "bulbasaur.png",
-      types: ["grass"],
+      image: "https://example.com/bulbasaur.png",
+      types: ["grass", "poison"],
       stats: {
         hp: 45,
         attack: 49,

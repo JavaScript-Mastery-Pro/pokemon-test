@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import PokemonMain from "../../../components/Pokemon/PokemonMain";
-import type { Pokemon } from "../../../types/pokemon";
+import PokemonMain from "@/components/Pokemon/PokemonMain";
+import type { Pokemon } from "@/types/pokemon";
 import { describe, it, expect } from "vitest";
 
 const mockPokemons: Pokemon[] = [
