@@ -1,30 +1,158 @@
 "use client";
-import { useState } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { PokemonCard } from "@/components/Pokemon/PokemonCard";
 import { TypeFilter } from "@/components/Filter/TypeFilter";
 import { BattleModal } from "@/components/Battle/BattleModal";
 import { BattleArena } from "@/components/Battle/BattleArena";
+import { Spinner } from "@/components/ui/spinner";
+import { PokemonCardSkeleton } from "@/components/Skeleton/PokemonCardSkeleton";
+import { TypeFilterSkeleton } from "@/components/Skeleton/TypeFilterSkeleton";
+import { useToast } from "@/hooks/use-toast";
 import type { Pokemon } from "@/types/pokemon";
+import {
+  getPokemonsPaginated,
+  getPokemonsByTypePaginated,
+  getPokemonTypeCount,
+  getTotalPokemonCount,
+  getAllPokemonTypes,
+} from "@/actions/pokemons.action";
 
 type Props = {
   initialPokemons: Pokemon[];
 };
 
 export default function PokemonMain({ initialPokemons }: Props) {
-  const [pokemons] = useState(initialPokemons);
+  const [pokemons, setPokemons] = useState<Pokemon[]>(initialPokemons);
   const [selected1, setSelected1] = useState<Pokemon | null>(null);
   const [selected2, setSelected2] = useState<Pokemon | null>(null);
   const [filterType, setFilterType] = useState("All");
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingTypes, setIsLoadingTypes] = useState(true);
+  const [hasMore, setHasMore] = useState(true);
+  const [offset, setOffset] = useState(20);
+  const [allTypes, setAllTypes] = useState<string[]>([]);
+  const observerTarget = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
 
-  const filtered = pokemons.filter((p) =>
-    filterType === "All" ? true : p.types.includes(filterType.toLowerCase()),
+  const POKEMON_LIMIT = 20;
+
+  useEffect(() => {
+    const loadTypes = async () => {
+      try {
+        setIsLoadingTypes(true);
+        const types = await getAllPokemonTypes();
+        setAllTypes(types);
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Failed to load Pokemon types. Please try again.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoadingTypes(false);
+      }
+    };
+    loadTypes();
+  }, [toast]);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      async (entries) => {
+        if (entries[0].isIntersecting && !isLoading && hasMore) {
+          await loadMore();
+        }
+      },
+      { threshold: 0.1 },
+    );
+
+    if (observerTarget.current) {
+      observer.observe(observerTarget.current);
+    }
+
+    return () => observer.disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoading, hasMore, filterType, offset]);
+
+  const loadMore = useCallback(async () => {
+    if (isLoading || !hasMore) return;
+
+    setIsLoading(true);
+    try {
+      let newPokemons: Pokemon[] = [];
+
+      if (filterType === "All") {
+        newPokemons = await getPokemonsPaginated(POKEMON_LIMIT, offset);
+        const totalCount = await getTotalPokemonCount();
+        setHasMore(offset + POKEMON_LIMIT < totalCount);
+      } else {
+        newPokemons = await getPokemonsByTypePaginated(
+          filterType.toLowerCase(),
+          POKEMON_LIMIT,
+          offset,
+        );
+        const typeCount = await getPokemonTypeCount(filterType.toLowerCase());
+        setHasMore(offset + POKEMON_LIMIT < typeCount);
+      }
+
+      if (newPokemons.length > 0) {
+        setPokemons((prev) => [...prev, ...newPokemons]);
+        setOffset((prev) => prev + POKEMON_LIMIT);
+      } else {
+        setHasMore(false);
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to load more Pokemon. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [isLoading, hasMore, filterType, offset, toast]);
+
+  const handleFilterChange = useCallback(
+    async (type: string) => {
+      setFilterType(type);
+      setOffset(0);
+      setIsLoading(true);
+      setHasMore(true);
+
+      try {
+        let newPokemons: Pokemon[] = [];
+
+        if (type === "All") {
+          newPokemons = await getPokemonsPaginated(POKEMON_LIMIT, 0);
+          const totalCount = await getTotalPokemonCount();
+          setHasMore(POKEMON_LIMIT < totalCount);
+        } else {
+          newPokemons = await getPokemonsByTypePaginated(
+            type.toLowerCase(),
+            POKEMON_LIMIT,
+            0,
+          );
+          const typeCount = await getPokemonTypeCount(type.toLowerCase());
+          setHasMore(POKEMON_LIMIT < typeCount);
+        }
+
+        setPokemons(newPokemons);
+        setOffset(POKEMON_LIMIT);
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: `Failed to filter Pokemon by ${type}. Please try again.`,
+          variant: "destructive",
+        });
+        setFilterType("All");
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [toast],
   );
 
-  const typesSet = Array.from(new Set(pokemons.flatMap((p) => p.types)));
-
   const handlePokemonClick = (pokemon: Pokemon) => {
-    // If clicking the same card that's already selected, deselect it
     if (selected1?.id === pokemon.id) {
       setSelected1(null);
       return;
@@ -34,19 +162,16 @@ export default function PokemonMain({ initialPokemons }: Props) {
       return;
     }
 
-    // If first slot is empty, fill it
     if (!selected1) {
       setSelected1(pokemon);
       return;
     }
 
-    // If second slot is empty, fill it
     if (!selected2) {
       setSelected2(pokemon);
       return;
     }
 
-    // If both are full, replace the second one
     setSelected2(pokemon);
   };
 
@@ -77,16 +202,20 @@ export default function PokemonMain({ initialPokemons }: Props) {
             <p className="text-sm sm:text-base text-muted-foreground mb-4 sm:mb-6">
               Choose two Pokémon to compare their stats and battle
             </p>
-            <TypeFilter
-              types={typesSet}
-              filterType={filterType}
-              setFilterType={setFilterType}
-            />
+            {isLoadingTypes ? (
+              <TypeFilterSkeleton />
+            ) : (
+              <TypeFilter
+                types={allTypes}
+                filterType={filterType}
+                setFilterType={handleFilterChange}
+              />
+            )}
           </div>
 
           {/* Pokémon Grid */}
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-4">
-            {filtered.map((p) => {
+            {pokemons.map((p) => {
               const isSelected =
                 selected1?.id === p.id || selected2?.id === p.id;
               const isFirst = selected1?.id === p.id;
@@ -100,13 +229,28 @@ export default function PokemonMain({ initialPokemons }: Props) {
                 />
               );
             })}
+            {isLoading &&
+              Array.from({ length: POKEMON_LIMIT }).map((_, i) => (
+                <PokemonCardSkeleton key={`skeleton-${i}`} />
+              ))}
           </div>
 
-          {/* No Pokémon found */}
-          {filtered.length === 0 && (
+          <div ref={observerTarget} className="flex justify-center py-8">
+            {isLoading && <Spinner />}
+          </div>
+
+          {pokemons.length === 0 && !isLoading && (
             <div className="flex items-center justify-center py-16">
               <p className="text-muted-foreground text-lg">
                 No Pokémon found for this type
+              </p>
+            </div>
+          )}
+
+          {!hasMore && pokemons.length > 0 && (
+            <div className="flex items-center justify-center py-8">
+              <p className="text-muted-foreground text-sm">
+                No more Pokémon to load
               </p>
             </div>
           )}

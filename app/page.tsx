@@ -1,13 +1,13 @@
-import { getPokemons } from "@/actions/getPokemons";
+import { getPokemonsPaginated } from "@/actions/pokemons.action";
 import PokemonMain from "@/components/Pokemon/PokemonMain";
-import { Pokemon } from "@/types/pokemon";
+import type { Pokemon } from "@/types/pokemon";
 
 export default async function Home() {
   let pokemons: Pokemon[] = [];
   let error: string | null = null;
 
   try {
-    pokemons = await getPokemons();
+    pokemons = await getPokemonsPaginated(20, 0);
   } catch (err: unknown) {
     const e = err as Error;
     error = e.message;

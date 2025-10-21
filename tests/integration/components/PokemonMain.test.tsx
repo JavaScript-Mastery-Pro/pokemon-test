@@ -1,7 +1,8 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import PokemonMain from "@/components/Pokemon/PokemonMain";
-import type { Pokemon } from "@/types/pokemon";
+import PokemonMain from "../../../components/Pokemon/PokemonMain";
+import type { Pokemon } from "../../../types/pokemon";
+import { describe, it, expect } from "vitest";
 
 const mockPokemons: Pokemon[] = [
   {
@@ -184,19 +185,23 @@ describe("PokemonMain Component", () => {
     });
   });
 
-  it("should filter Pokemon by type", async () => {
-    const user = userEvent.setup();
-    render(<PokemonMain initialPokemons={mockPokemons} />);
+  // it("should filter Pokemon by type", async () => {
+  //   const user = userEvent.setup();
+  //   render(<PokemonMain initialPokemons={mockPokemons} />);
 
-    const fireTypeButton = screen.getByRole("button", { name: /fire/i });
-    await user.click(fireTypeButton);
+  //   await waitFor(() => {
+  //     expect(screen.getByRole("button", { name: /fire/i })).toBeInTheDocument();
+  //   });
 
-    await waitFor(() => {
-      expect(screen.getByText("Charmander")).toBeInTheDocument();
-      expect(screen.queryByText("Bulbasaur")).not.toBeInTheDocument();
-      expect(screen.queryByText("Ivysaur")).not.toBeInTheDocument();
-    });
-  });
+  //   const fireType = screen.getByRole("button", { name: /fire/i });
+  //   await user.click(fireType);
+
+  //   await waitFor(() => {
+  //     expect(screen.getByText("Charmander")).toBeInTheDocument();
+  //     expect(screen.queryByText("Bulbasaur")).not.toBeInTheDocument();
+  //     expect(screen.queryByText("Ivysaur")).not.toBeInTheDocument();
+  //   });
+  // });
 
   it("should show View Battle Analysis button only when both slots are filled", async () => {
     const user = userEvent.setup();
@@ -224,21 +229,59 @@ describe("PokemonMain Component", () => {
     });
   });
 
-  it("should maintain selection when filtering", async () => {
+  // it("should maintain selection when filtering", async () => {
+  //   const user = userEvent.setup();
+  //   render(<PokemonMain initialPokemons={mockPokemons} />);
+
+  //   const bulbasaurElements = screen.getAllByText("Bulbasaur");
+  //   const bulbasaurCard = bulbasaurElements[0].closest("div")?.parentElement;
+
+  //   await user.click(bulbasaurCard!);
+  //   await waitFor(() => {
+  //     expect(
+  //       screen.getByRole("button", { name: /grass/i }),
+  //     ).toBeInTheDocument();
+  //   });
+
+  //   const grassButton = screen.getByRole("button", { name: /grass/i });
+  //   await user.click(grassButton);
+
+  //   await waitFor(() => {
+  //     const bulbasaurInArena = screen.getAllByText("Bulbasaur");
+  //     expect(bulbasaurInArena.length).toBeGreaterThan(1);
+  //   });
+  // });
+
+  it("should filter Pokémon by type and maintain selection", async () => {
     const user = userEvent.setup();
     render(<PokemonMain initialPokemons={mockPokemons} />);
 
-    const bulbasaurElements = screen.getAllByText("Bulbasaur");
-    const bulbasaurCard = bulbasaurElements[0].closest("div")?.parentElement;
+    // Select Bulbasaur
+    const bulbasaurCard = screen.getAllByText("Bulbasaur")[0].closest("div")!;
+    await user.click(bulbasaurCard);
 
-    await user.click(bulbasaurCard!);
+    // Wait for buttons to appear
+    const grassButton = await screen.findByRole("button", { name: /grass/i });
+    const fireButton = await screen.findByRole("button", { name: /fire/i });
 
-    const grassButton = screen.getByRole("button", { name: /grass/i });
+    // Select Grass type
     await user.click(grassButton);
 
-    await waitFor(() => {
-      const bulbasaurInArena = screen.getAllByText("Bulbasaur");
-      expect(bulbasaurInArena.length).toBeGreaterThan(1);
-    });
+    // Scope grid
+    const grid = screen.getByRole("main").querySelector(".grid")!;
+    let gridText = grid.textContent || "";
+
+    // Bulbasaur stays in Battle Arena, Charmander hidden in grid
+    expect(screen.getAllByText("Bulbasaur").length).toBeGreaterThan(1);
+    expect(gridText).not.toContain("Charmander");
+
+    // Switch to Fire type
+    await user.click(fireButton);
+
+    gridText = grid.textContent || "";
+    // Charmander visible in grid, Bulbasaur still in Battle Arena, Grass types filtered out from grid
+    expect(screen.getByText("Charmander")).toBeInTheDocument();
+    expect(screen.getAllByText("Bulbasaur").length).toBeGreaterThan(1);
+    expect(gridText).not.toContain("Ivysaur");
   });
 });

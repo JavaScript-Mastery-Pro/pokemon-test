@@ -1,65 +1,54 @@
 // __tests__/getPokemons.test.ts
-import { getPokemons } from "@/actions/getPokemons";
+import { getPokemons } from "@/actions/pokemons.action";
 import type { Pokemon } from "@/types/pokemon";
+import { describe, expect, it, vi, afterEach } from "vitest";
 
 // Mock fetch globally
-global.fetch = jest.fn();
+globalThis.fetch = vi.fn() as unknown as typeof fetch;
+
+function mockFetchResponse<T>(data: T): Response {
+  return {
+    ok: true,
+    json: async () => data,
+  } as Response;
+}
 
 describe("getPokemons server action", () => {
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it("should fetch a list of Pokémon with details", async () => {
     // Mock list response
-    (fetch as jest.MockedFunction<typeof fetch>)
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
+    (fetch as unknown as vi.Mock)
+      .mockResolvedValueOnce(
+        mockFetchResponse({
           results: [
             { name: "bulbasaur", url: "https://pokeapi.co/api/v2/pokemon/1" },
             { name: "charmander", url: "https://pokeapi.co/api/v2/pokemon/4" },
           ],
         }),
-      } as Response)
-      // Mock detail for Bulbasaur
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
+      )
+      .mockResolvedValueOnce(
+        mockFetchResponse({
           sprites: {
             other: { "official-artwork": { front_default: "bulba.png" } },
             front_default: "bulba_fallback.png",
           },
           types: [{ type: { name: "grass" } }],
-          stats: [
-            { base_stat: 45 },
-            { base_stat: 49 },
-            { base_stat: 49 },
-            { base_stat: 65 },
-            { base_stat: 65 },
-            { base_stat: 45 },
-          ],
+          stats: [45, 49, 49, 65, 65, 45].map((v) => ({ base_stat: v })),
         }),
-      } as Response)
-      // Mock detail for Charmander
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
+      )
+      .mockResolvedValueOnce(
+        mockFetchResponse({
           sprites: {
             other: { "official-artwork": { front_default: "char.png" } },
             front_default: "char_fallback.png",
           },
           types: [{ type: { name: "fire" } }],
-          stats: [
-            { base_stat: 39 },
-            { base_stat: 52 },
-            { base_stat: 43 },
-            { base_stat: 60 },
-            { base_stat: 50 },
-            { base_stat: 65 },
-          ],
+          stats: [39, 52, 43, 60, 50, 65].map((v) => ({ base_stat: v })),
         }),
-      } as Response);
+      );
 
     const pokemons: Pokemon[] = await getPokemons();
 
@@ -94,7 +83,7 @@ describe("getPokemons server action", () => {
   });
 
   it("should skip Pokémon if detail fetch fails", async () => {
-    (fetch as jest.MockedFunction<typeof fetch>)
+    (fetch as vi.MockedFunction<typeof fetch>)
       .mockResolvedValueOnce({
         ok: true,
         json: async () => ({
@@ -113,7 +102,7 @@ describe("getPokemons server action", () => {
   });
 
   it("should throw if initial fetch fails", async () => {
-    (fetch as jest.MockedFunction<typeof fetch>).mockResolvedValueOnce({
+    (fetch as vi.MockedFunction<typeof fetch>).mockResolvedValueOnce({
       ok: false,
     } as Response);
 

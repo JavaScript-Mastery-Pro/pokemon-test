@@ -1,3 +1,5 @@
+import { describe, it, expect } from "vitest";
+
 describe("Battle Calculations", () => {
   const calculateTotalStats = (stats: Record<string, number>) => {
     return Object.values(stats).reduce((a, b) => a + b, 0);

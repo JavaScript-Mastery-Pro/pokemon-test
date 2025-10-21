@@ -1,22 +1,44 @@
 import { render } from "@testing-library/react";
 import BattleRadar from "@/components/Battle/BattleRadar";
+import type { ReactNode } from "react";
 import type { Pokemon } from "@/types/pokemon";
+import { describe, it, expect, vi } from "vitest";
 
-jest.mock("recharts", () => ({
-  ResponsiveContainer: ({ children }: any) => (
+interface ContainerProps {
+  children: ReactNode;
+}
+
+interface RadarChartProps {
+  data: Pokemon[];
+  children?: ReactNode;
+}
+
+interface RadarProps {
+  name: string;
+  dataKey: string;
+  stroke?: string;
+  fill?: string;
+}
+
+interface AngleAxisProps {
+  dataKey: string;
+}
+
+vi.mock("recharts", () => ({
+  ResponsiveContainer: ({ children }: ContainerProps) => (
     <div data-testid="responsive-container">{children}</div>
   ),
-  RadarChart: ({ data, children }: any) => (
+  RadarChart: ({ data, children }: RadarChartProps) => (
     <div data-testid="radar-chart" data-chart-data={JSON.stringify(data)}>
       {children}
     </div>
   ),
   PolarGrid: () => <div data-testid="polar-grid" />,
-  PolarAngleAxis: ({ dataKey }: any) => (
+  PolarAngleAxis: ({ dataKey }: AngleAxisProps) => (
     <div data-testid="polar-angle-axis" data-key={dataKey} />
   ),
   PolarRadiusAxis: () => <div data-testid="polar-radius-axis" />,
-  Radar: ({ name, dataKey, stroke, fill }: any) => (
+  Radar: ({ name, dataKey, stroke, fill }: RadarProps) => (
     <div
       data-testid={`radar-${name}`}
       data-key={dataKey}
