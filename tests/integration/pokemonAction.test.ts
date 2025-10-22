@@ -2,19 +2,10 @@ import { describe, it, expect } from "vitest";
 import { http, HttpResponse } from "msw";
 import { server } from "../mocks/server";
 import { getPokemons } from "@/actions/pokemons.action";
-import { mockPokemonList, mockBulbasaurDetails } from "../mocks/mock.data";
+import { mockBulbasaurDetails } from "../mocks/mock.data";
 
 describe("getPokemons Server Action", () => {
   it("should fetch and correctly transform the pokemon data on success", async () => {
-    server.use(
-      http.get("https://pokeapi.co/api/v2/pokemon", () =>
-        HttpResponse.json(mockPokemonList),
-      ),
-      http.get("https://pokeapi.co/api/v2/pokemon/1/", () =>
-        HttpResponse.json(mockBulbasaurDetails),
-      ),
-    );
-
     const pokemons = await getPokemons();
     expect(pokemons).toHaveLength(2);
     expect(pokemons[0]).toEqual({
@@ -38,14 +29,14 @@ describe("getPokemons Server Action", () => {
     server.use(
       http.get("https://pokeapi.co/api/v2/pokemon", () => {
         return new HttpResponse(null, { status: 500 });
-      }),
+      })
     );
 
     // Assert that the function throws the expected error.
     await expect(getPokemons()).rejects.toThrow("Failed to load Pokémon data");
   });
 
-  it("should gracefully handle failures in fetching individual pokemon details", async () => {
+  it("should handle failures in fetching individual pokemon details", async () => {
     // Mock a scenario where one of the detail fetches fails.
     server.use(
       http.get("https://pokeapi.co/api/v2/pokemon", () => {
@@ -63,7 +54,7 @@ describe("getPokemons Server Action", () => {
       // Charmander fetch fails with a server error.
       http.get("https://pokeapi.co/api/v2/pokemon/4/", () => {
         return new HttpResponse(null, { status: 500 });
-      }),
+      })
     );
 
     const pokemons = await getPokemons();
@@ -77,7 +68,7 @@ describe("getPokemons Server Action", () => {
     server.use(
       http.get("https://pokeapi.co/api/v2/pokemon", () => {
         return HttpResponse.json({ results: [] });
-      }),
+      })
     );
     const pokemons = await getPokemons();
     expect(pokemons).toEqual([]);
