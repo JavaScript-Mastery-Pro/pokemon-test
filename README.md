@@ -31,7 +31,7 @@ This repository contains the code corresponding to our in-depth **Next.js Testin
 Learn how to write reliable tests for your Next.js applications, handle edge cases, and ensure your code is maintainable and bug-free. This course guides you step-by-step, making testing approachable for beginners and intermediate developers alike.
 
 <a href="https://jsmastery.com/course/the-complete-next-js-testing-course" target="_blank">
-  <img src="https://github.com/user-attachments/assets/54ef6cd0-1f00-4989-a6a5-3f77ca3f68a2" style="width: 200px; height: auto;" alt="JSM Testing Course" />
+  <img src="https://github.com/user-attachments/assets/54ef6cd0-1f00-4989-a6a5-3f77ca3f68a2" style="width: 150px; height: auto;" alt="JSM Testing Course" />
 </a>
 
 ## ✨ Features
